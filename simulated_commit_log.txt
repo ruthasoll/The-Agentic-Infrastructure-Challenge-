@@ -1,0 +1,5 @@
+0001 init: repository initialized, added README.md and .gitignore
+0002 feat(docs): add research/notes.md (Task 1.1 deep reading)
+0003 docs(arch): add research/architecture_strategy.md (Task 1.2)
+0004 chore(env): add pyproject.toml and developer dependencies
+0005 feat(sim): add simulated Tenx MCP Sense connection log and LOOM script
