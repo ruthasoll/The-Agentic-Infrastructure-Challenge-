@@ -1,4 +1,36 @@
-# Feature Specification: [FEATURE NAME]
+{
+  "$id": "https://project-chimera/specs/schemas/TaskRequest.json",
+  "type": "object",
+  "required": ["task_id","campaign_id","persona_id","input","timeout_seconds","priority","correlation_id"],
+  "properties": {
+    "task_id": {"type":"string"},
+    "campaign_id": {"type":"string"},
+    "persona_id": {"type":"string"},
+    "input": {"type":"object"},
+    "timeout_seconds": {"type":"integer", "minimum":1},
+    "priority": {"type":"integer", "minimum":0},
+    "correlation_id": {"type":"string"}
+  }
+}{
+  "$id":"https://project-chimera/specs/schemas/TaskResult.json",
+  "type":"object",
+  "required":["task_id","status","artifact_ref","scores"],
+  "properties": {
+    "task_id":{"type":"string"},
+    "status":{"type":"string","enum":["candidate","accepted","rejected","escalated"]},
+    "artifact_ref":{"type":"string"},
+    "scores":{"type":"object"}
+  }
+}{
+  "$id":"https://project-chimera/specs/schemas/ToolCall.json",
+  "type":"object",
+  "required":["tool_name","payload","timeout"],
+  "properties":{
+    "tool_name":{"type":"string"},
+    "payload":{"type":"object"},
+    "timeout":{"type":"integer"}
+  }
+}# Feature Specification: [FEATURE NAME]
 
 > Governance: Every spec MUST reference `.specify/memory/constitution.md` and include required artifacts: failing tests, telemetry fields, and safety constraints where relevant.
 
