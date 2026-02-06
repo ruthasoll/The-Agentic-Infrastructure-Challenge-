@@ -1,0 +1,381 @@
+# CodeRabbit AI Code Review Configuration
+#
+# Spec Reference: .cursor/rules (spec-first development and governance)
+# Purpose: Configure AI code reviewer to enforce Project Chimera development standards
+#
+# This configuration instructs CodeRabbit to:
+# 1. Check every PR for spec/ folder references
+# 2. Flag code without SRS traceability
+# 3. Enforce security best practices
+# 4. Suggest improvements for TDD compliance
+
+# ============================================================================
+# Review Settings
+# ============================================================================
+reviews:
+  # Enable auto-review on all PRs
+  auto_review:
+    enabled: true
+    drafts: false  # Don't review draft PRs
+  
+  # Review scope
+  scope:
+    - "src/**"
+    - "tests/**"
+    - "skills/**"
+    - "specs/**"
+  
+  # Ignore patterns
+  ignore:
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - ".venv/**"
+    - "htmlcov/**"
+
+# ============================================================================
+# Spec-First Development Enforcement
+# ============================================================================
+custom_rules:
+  # Rule 1: Spec Reference Requirement
+  - id: spec-reference-required
+    name: "Spec Reference Required"
+    description: "All implementation files must reference spec files"
+    severity: error
+    pattern: |
+      Check that every new Python file in src/ contains:
+      - "SRS Reference:" comment with section number
+      - "Spec:" comment with spec file path and line numbers
+    message: |
+      ❌ Missing spec reference!
+      
+      Every implementation file must include:
+      ```python
+      """
+      SRS Reference: §X.Y Feature Name
+      Spec: specs/functional.md, FRX.Y (lines XX-YY)
+      """
+      ```
+      
+      See .cursor/rules for details.
+  
+  # Rule 2: Test-First Development
+  - id: test-first-development
+    name: "Test-First Development"
+    description: "Implementation must have corresponding tests"
+    severity: warning
+    pattern: |
+      For every new file in src/, check if corresponding test file exists in tests/
+    message: |
+      ⚠️ Missing test file!
+      
+      TDD requires tests before implementation.
+      Expected test file: tests/test_<module_name>.py
+      
+      See .cursor/rules for TDD workflow.
+  
+  # Rule 3: No Hardcoded Secrets
+  - id: no-hardcoded-secrets
+    name: "No Hardcoded Secrets"
+    description: "Prevent hardcoded API keys and secrets"
+    severity: error
+    pattern: |
+      Check for patterns like:
+      - api_key = "..."
+      - API_KEY = "..."
+      - password = "..."
+      - token = "..."
+    message: |
+      ❌ Hardcoded secret detected!
+      
+      Never hardcode secrets in code.
+      Use environment variables or MCP Gateway for secrets.
+      
+      Correct approach:
+      ```python
+      import os
+      api_key = os.getenv("API_KEY")
+      ```
+  
+  # Rule 4: MCP Integration Required
+  - id: mcp-integration-required
+    name: "MCP Integration Required"
+    description: "External APIs must go through MCP Gateway"
+    severity: error
+    pattern: |
+      Check for direct API calls like:
+      - requests.get("https://api...")
+      - httpx.get("https://api...")
+      - urllib.request.urlopen(...)
+    message: |
+      ❌ Direct API call detected!
+      
+      All external interactions must go through MCP Gateway.
+      
+      Correct approach:
+      ```python
+      from mcp_client import MCPGateway
+      gateway = MCPGateway()
+      token = gateway.request_capability("capability_name")
+      response = gateway.call_api(token, endpoint="/...")
+      ```
+      
+      See .cursor/rules for MCP integration rules.
+  
+  # Rule 5: Spec File Changes Require Approval
+  - id: spec-changes-require-approval
+    name: "Spec Changes Require Approval"
+    description: "Changes to specs/ require explicit approval"
+    severity: error
+    pattern: |
+      If any files in specs/ are modified, flag for manual review
+    message: |
+      ❌ Spec file change detected!
+      
+      Spec files define the contract and must be reviewed carefully.
+      Changes to specs/ require:
+      1. User approval
+      2. Update to related implementation
+      3. Update to related tests
+      
+      See .cursor/rules for spec modification process.
+
+# ============================================================================
+# Code Quality Checks
+# ============================================================================
+quality:
+  # Python-specific checks
+  python:
+    # Type hints required
+    type_hints:
+      enabled: true
+      severity: warning
+      message: "Add type hints for function parameters and return values"
+    
+    # Docstrings required
+    docstrings:
+      enabled: true
+      severity: warning
+      message: |
+        Add docstring with:
+        - Brief description
+        - Args section
+        - Returns section
+        - SRS Reference
+        - Spec Reference
+    
+    # Complexity limits
+    complexity:
+      max_function_complexity: 10
+      max_file_length: 500
+      severity: warning
+  
+  # Security checks
+  security:
+    # Check for SQL injection vulnerabilities
+    sql_injection:
+      enabled: true
+      severity: error
+    
+    # Check for command injection
+    command_injection:
+      enabled: true
+      severity: error
+    
+    # Check for path traversal
+    path_traversal:
+      enabled: true
+      severity: error
+
+# ============================================================================
+# Review Focus Areas
+# ============================================================================
+focus_areas:
+  - name: "Spec Traceability"
+    description: "Verify all code traces to specs and SRS"
+    weight: high
+    checks:
+      - "SRS Reference comment present"
+      - "Spec file reference present"
+      - "Line numbers specified for spec reference"
+  
+  - name: "Test Coverage"
+    description: "Ensure TDD compliance"
+    weight: high
+    checks:
+      - "Test file exists for implementation"
+      - "Test cases cover acceptance criteria from spec"
+      - "Tests written before implementation (check git history)"
+  
+  - name: "Security"
+    description: "Enforce security best practices"
+    weight: critical
+    checks:
+      - "No hardcoded secrets"
+      - "No direct API calls (must use MCP)"
+      - "Input validation present"
+      - "Error handling implemented"
+  
+  - name: "Code Quality"
+    description: "Maintain code quality standards"
+    weight: medium
+    checks:
+      - "Type hints present"
+      - "Docstrings complete"
+      - "Complexity within limits"
+      - "No code duplication"
+
+# ============================================================================
+# Auto-Suggestions
+# ============================================================================
+suggestions:
+  # Suggest adding spec references
+  - trigger: "new file in src/"
+    suggestion: |
+      Add spec reference at the top of the file:
+      ```python
+      """
+      <Brief description>
+      
+      SRS Reference: §X.Y Feature Name
+      Spec: specs/functional.md, FRX.Y (lines XX-YY)
+      """
+      ```
+  
+  # Suggest creating test file
+  - trigger: "new file in src/ without corresponding test"
+    suggestion: |
+      Create test file: tests/test_<module_name>.py
+      
+      Start with failing tests based on spec acceptance criteria.
+  
+  # Suggest using MCP Gateway
+  - trigger: "import requests"
+    suggestion: |
+      Consider using MCP Gateway instead of direct HTTP requests:
+      ```python
+      from mcp_client import MCPGateway
+      gateway = MCPGateway()
+      ```
+  
+  # Suggest adding telemetry
+  - trigger: "new function in src/"
+    suggestion: |
+      Consider adding telemetry for lifecycle events:
+      ```python
+      from task1.telemetry import emit_event
+      emit_event(event_type="...", trace_id=..., metadata=...)
+      ```
+
+# ============================================================================
+# Review Comments
+# ============================================================================
+comments:
+  # Auto-comment on spec reference issues
+  spec_reference_missing:
+    enabled: true
+    message: |
+      📋 **Spec Reference Missing**
+      
+      This file is missing spec references. Please add:
+      - SRS section reference
+      - Spec file path with line numbers
+      
+      See `.cursor/rules` for requirements.
+  
+  # Auto-comment on test coverage
+  test_coverage_low:
+    enabled: true
+    threshold: 80
+    message: |
+      ⚠️ **Low Test Coverage**
+      
+      Test coverage is below 80%. Please add tests for:
+      - Uncovered functions
+      - Edge cases
+      - Error conditions
+  
+  # Auto-comment on security issues
+  security_issue:
+    enabled: true
+    message: |
+      🔒 **Security Issue Detected**
+      
+      This code may have security vulnerabilities. Please review:
+      - Input validation
+      - Error handling
+      - Secret management
+      - API authentication
+
+# ============================================================================
+# Integration Settings
+# ============================================================================
+integrations:
+  # GitHub integration
+  github:
+    # Auto-label PRs
+    auto_label:
+      enabled: true
+      labels:
+        - name: "needs-spec-reference"
+          condition: "missing spec reference"
+        - name: "needs-tests"
+          condition: "missing test file"
+        - name: "security-review"
+          condition: "security issue detected"
+        - name: "spec-change"
+          condition: "specs/ modified"
+    
+    # Auto-request reviewers
+    auto_reviewers:
+      enabled: true
+      reviewers:
+        - "architecture-team"  # For spec changes
+        - "security-team"      # For security issues
+
+# ============================================================================
+# Exclusions
+# ============================================================================
+exclude:
+  # Don't review these files
+  files:
+    - "*.md"
+    - "*.txt"
+    - "*.json"
+    - "Dockerfile"
+    - "Makefile"
+  
+  # Don't review these directories
+  directories:
+    - ".github/"
+    - "docs/"
+    - "research/"
+
+# ============================================================================
+# Summary
+# ============================================================================
+# 
+# This CodeRabbit configuration creates a governance pipeline that:
+# 
+# 1. **Enforces Spec-First Development**
+#    - Every PR checked for spec references
+#    - Flags code without SRS traceability
+#    - Requires approval for spec changes
+# 
+# 2. **Ensures Security**
+#    - Detects hardcoded secrets
+#    - Flags direct API calls (must use MCP)
+#    - Checks for common vulnerabilities
+# 
+# 3. **Promotes TDD**
+#    - Verifies test files exist
+#    - Checks test coverage
+#    - Suggests test improvements
+# 
+# 4. **Maintains Quality**
+#    - Enforces type hints and docstrings
+#    - Limits complexity
+#    - Prevents code duplication
+# 
+# Combined with GitHub Actions CI/CD, this creates a complete governance
+# system that prevents code without specs from being merged!
+# ============================================================================
