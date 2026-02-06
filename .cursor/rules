@@ -1,0 +1,374 @@
+# Project Chimera — IDE Agent Rules
+
+## Project Context
+
+**This is Project Chimera: Autonomous Influencer Network**, as defined in the SRS document and research materials in `research/notes.md` and `research/architecture_strategy.md`.
+
+**Goal**: Build a factory for agentic influencers using:
+- **FastRender Swarm** (Planner → Worker → Judge architecture)
+- **MCP (Model Context Protocol)** for capability gating and external integrations
+- **Agentic Commerce** with secure wallets, ledgers, and cryptographic receipts
+
+**Business Models**: Digital Talent Agency, Platform-as-a-Service, Hybrid Network Participation (OpenClaw integration)
+
+---
+
+## Prime Directive: Spec-First Development
+
+> [!CAUTION]
+> **NEVER generate or suggest implementation code unless the relevant spec file in `specs/` is already created, committed, and explicitly referenced in the prompt.**
+
+### Enforcement Rules
+
+1. **Before writing ANY code**, verify that:
+   - A spec file exists in `specs/` for the feature
+   - The spec has been committed to git
+   - The user explicitly references the spec in their request
+
+2. **If no spec exists**, respond with:
+   ```
+   ⚠️ No specification found for this feature.
+   
+   Before implementing, we need to create:
+   - specs/[feature_name].md with user stories and acceptance criteria
+   - Commit the spec to git
+   - Get user approval
+   
+   Would you like me to create the spec first?
+   ```
+
+3. **Always ask for spec confirmation first** before proceeding with implementation.
+
+---
+
+## Traceability Rule
+
+> [!IMPORTANT]
+> Before writing any code, plan step-by-step and explain which SRS section and `specs/*.md` file you are implementing.
+
+### Required Process
+
+1. **State the spec reference**:
+   ```
+   Implementing: specs/functional.md, FR2.1 (Retrieval-Augmented Generation)
+   SRS Reference: §4.2 Perception, FR2
+   Lines: 45-62
+   ```
+
+2. **Explain the implementation plan**:
+   - Which files will be created/modified
+   - Which acceptance criteria from the spec will be satisfied
+   - Which tests will be written first (TDD)
+
+3. **Reference line numbers or headings** from the spec file when possible.
+
+4. **Trace to research documents**:
+   - `research/notes.md` for SRS requirements
+   - `research/architecture_strategy.md` for architectural decisions
+
+---
+
+## Safety Rules
+
+### 1. Flag Ambiguity
+
+> [!WARNING]
+> **Do not assume missing specs — flag ambiguity and ask for clarification.**
+
+If the user's request is unclear or missing details:
+- List specific questions that need answers
+- Reference which spec sections need clarification
+- Suggest creating a new spec if the feature is not documented
+
+### 2. Prioritize TDD (Test-Driven Development)
+
+> [!TIP]
+> **Suggest failing tests before implementation.**
+
+**Required TDD Flow**:
+1. Write failing test based on spec acceptance criteria
+2. Run test to confirm it fails
+3. Implement minimal code to pass the test
+4. Refactor while keeping tests green
+5. Update telemetry and documentation
+
+**Test File Naming**:
+- Unit tests: `tests/test_[module]_[feature].py`
+- Integration tests: `tests/integration/test_[feature]_integration.py`
+- Telemetry tests: `tests/test_telemetry_[feature].py`
+
+### 3. Atomic Commits
+
+> [!IMPORTANT]
+> **Keep commits atomic and descriptive.**
+
+**Commit Message Format**:
+```
+[SPEC-REF] Brief description
+
+- Detailed change 1
+- Detailed change 2
+
+Implements: specs/functional.md FR2.1
+SRS: §4.2 Perception
+Tests: tests/test_rag_retrieval.py
+```
+
+**Examples**:
+- `[FR2.1] Add RAG retrieval with Weaviate integration`
+- `[FR5.1] Implement wallet balance tracking with PostgreSQL`
+- `[TEST] Add failing tests for campaign manifest validation`
+
+---
+
+## MCP & Challenge Rules
+
+### 1. MCP Server Integration
+
+> [!CAUTION]
+> **All external interactions must go through MCP servers — never hardcode APIs.**
+
+**Prohibited**:
+```python
+# ❌ NEVER DO THIS
+import requests
+response = requests.get("https://api.twitter.com/...")
+```
+
+**Required**:
+```python
+# ✅ ALWAYS DO THIS
+from mcp_client import MCPGateway
+
+gateway = MCPGateway()
+token = gateway.request_capability("social_media_publish")
+response = gateway.call_api(token, endpoint="/publish", data=payload)
+```
+
+### 2. Separation of Concerns
+
+> [!IMPORTANT]
+> **Respect separation: MCP Servers for dev tooling, Skills for runtime agent capabilities.**
+
+**MCP Servers** (Development-time tools for YOU/IDE):
+- `git-mcp`: Git operations
+- `filesystem-mcp`: File system access
+- `github-mcp`: GitHub API integration
+- `database-mcp`: Database queries and migrations
+- `playwright-mcp`: Browser automation for testing
+
+**Skills** (Runtime capabilities for Chimera Agents):
+- `fetch_trends`: Get trending topics from social media
+- `generate_content`: Create campaign content with LLM
+- `publish_post`: Publish to social platforms
+- `check_wallet_balance`: Query agent wallet balance
+- `validate_image`: Check image compliance with brand guidelines
+
+**Never confuse the two!**
+
+### 3. Tenx MCP Sense Telemetry
+
+**All lifecycle events must emit telemetry**:
+```python
+from task1.telemetry import emit_event
+
+emit_event(
+    event_type="task.started",
+    trace_id=trace_id,
+    task_manifest_id=task_id,
+    soul_id=agent_soul_id,
+    metadata={"payload_size": len(payload)}
+)
+```
+
+**Required Events**:
+- `agent.created`, `agent.activated`, `agent.suspended`, `agent.terminated`
+- `task.claimed`, `task.completed`, `task.failed`, `task.escalated`
+- `judge.approved`, `judge.escalated`, `judge.blocked`
+- `transaction.initiated`, `transaction.completed`, `transaction.failed`
+
+---
+
+## Code Quality Standards
+
+### 1. Type Hints (Python 3.12+)
+
+**Required**:
+```python
+from typing import Dict, List, Optional
+from uuid import UUID
+
+def create_task_manifest(
+    campaign_id: UUID,
+    task_type: str,
+    payload: Dict[str, Any],
+    priority: str = "NORMAL"
+) -> Dict[str, Any]:
+    ...
+```
+
+### 2. Docstrings
+
+**Required for all public functions**:
+```python
+def validate_soul_signature(soul_manifest: Dict[str, Any]) -> bool:
+    """
+    Validate ed25519 signature on SOUL manifest.
+    
+    Args:
+        soul_manifest: SOUL manifest dict with signature field
+        
+    Returns:
+        True if signature is valid, False otherwise
+        
+    Raises:
+        ValueError: If manifest is missing required fields
+        
+    SRS Reference: §4.1 Persona, FR1.1
+    Spec: specs/functional.md, lines 23-35
+    """
+    ...
+```
+
+### 3. Error Handling
+
+**Always handle errors gracefully**:
+```python
+try:
+    result = worker.execute_task(task_manifest)
+except TaskExecutionError as e:
+    emit_event("task.failed", error=str(e))
+    judge.escalate(task_id, reason="execution_error")
+except Exception as e:
+    logger.error(f"Unexpected error: {e}", exc_info=True)
+    raise
+```
+
+---
+
+## File Organization
+
+### Project Structure
+```
+project_root/
+├── specs/                  # Specifications (NEVER modify without user approval)
+│   ├── _meta.md
+│   ├── functional.md
+│   ├── technical.md
+│   └── openclaw_integration.md
+├── research/               # SRS and research documents (READ-ONLY)
+│   ├── notes.md
+│   └── architecture_strategy.md
+├── skills/                 # Runtime agent capabilities
+│   ├── README.md
+│   └── skill_*/
+├── src/                    # Implementation code
+│   ├── orchestrator/
+│   ├── planner/
+│   ├── worker/
+│   ├── judge/
+│   └── mcp_gateway/
+├── tests/                  # Test files
+│   ├── unit/
+│   ├── integration/
+│   └── telemetry/
+└── .cursor/                # IDE configuration
+    └── rules               # This file
+```
+
+---
+
+## Decision Framework
+
+### When to Create a New Spec
+
+Create a new spec file when:
+- Adding a new major feature (FR-level)
+- Implementing a new integration (e.g., payment gateway)
+- Changing core architecture patterns
+- Adding new social protocols
+
+### When to Update Existing Spec
+
+Update existing spec when:
+- Refining acceptance criteria
+- Adding edge cases discovered during implementation
+- Clarifying ambiguous requirements
+
+**Always get user approval before modifying specs!**
+
+---
+
+## Quick Reference Checklist
+
+Before writing implementation code, verify:
+
+- [ ] Spec file exists in `specs/` for this feature
+- [ ] Spec has been committed to git
+- [ ] User explicitly referenced the spec
+- [ ] I can cite specific SRS section and spec line numbers
+- [ ] I have a plan for failing tests first (TDD)
+- [ ] All external APIs will go through MCP
+- [ ] Telemetry events are planned
+- [ ] Commit message will reference spec and SRS
+
+**If ANY checkbox is unchecked, STOP and ask for clarification!**
+
+---
+
+## Examples
+
+### ✅ Good Request Handling
+
+**User**: "Implement FR2.1 from specs/functional.md"
+
+**Agent Response**:
+```
+Implementing: specs/functional.md, FR2.1 (Retrieval-Augmented Generation)
+SRS Reference: §4.2 Perception, FR2
+Lines: 45-62
+
+Plan:
+1. Create failing test: tests/test_rag_retrieval.py
+2. Implement: src/worker/rag_engine.py
+3. Integrate with Weaviate client
+4. Add telemetry events: worker.rag_query_started, worker.rag_query_completed
+
+Acceptance Criteria (from spec):
+- Workers query Weaviate for relevant context ✓
+- All content includes citation metadata ✓
+- RAG queries return top-k results with similarity ≥ 0.75 ✓
+- Citations persisted in ledger ✓
+
+Proceeding with TDD approach...
+```
+
+### ❌ Bad Request Handling
+
+**User**: "Add a feature to post to Twitter"
+
+**Agent Response**:
+```
+⚠️ No specification found for Twitter integration.
+
+Before implementing, we need to create:
+- specs/social_media_integration.md with:
+  - User stories for social media publishing
+  - Acceptance criteria for Twitter API integration
+  - MCP capability definition for social_media_publish
+  - Security and rate-limiting requirements
+
+This should reference:
+- SRS §4.4 Action System (FR4.2 External API Integration)
+- specs/technical.md MCP Tool schema
+- specs/openclaw_integration.md (if publishing to agent networks)
+
+Would you like me to create the spec first?
+```
+
+---
+
+**Document Version**: 1.0  
+**Last Updated**: 2026-02-06  
+**Owner**: Development Team  
+**Enforcement**: Mandatory for all code generation
