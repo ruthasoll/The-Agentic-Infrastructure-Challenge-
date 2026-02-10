@@ -72,6 +72,7 @@ We use a unified build script for cross-platform automation.
 | `.\build.ps1 spec-check` | **Governance**: Verify spec references in code |
 | `.\build.ps1 lint` | Auto-format (`black`) and lint (`ruff`) |
 | `.\build.ps1 docker-build`| Build production Docker image |
+| `.\build.ps1 run-frontend`| Launch Streamlit Dashboard |
 
 ### 🔨 Daily Workflow
 

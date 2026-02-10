@@ -26,6 +26,7 @@ function Show-Help {
     Write-Host "  .\build.ps1 lint         - Run ruff and black formatters"
     Write-Host "  .\build.ps1 spec-check   - Verify spec references in code"
     Write-Host "  .\build.ps1 docker-build - Build Docker image"
+    Write-Host "  .\build.ps1 run-frontend - Launch Streamlit Dashboard"
     Write-Host "  .\build.ps1 clean        - Remove build artifacts"
     Write-Host ""
     Write-Host "Spec Reference: .cursor/rules (TDD and automation)" -ForegroundColor Gray
@@ -118,6 +119,16 @@ function Run-DockerBuild {
     }
 }
 
+function Run-Frontend {
+    Write-Host "Launching Agent Command Center..." -ForegroundColor Cyan
+    Write-Host "Spec Reference: specs/frontend.md" -ForegroundColor Gray
+    
+    # Ensure src is in PYTHONPATH
+    $env:PYTHONPATH = "$PWD;src"
+    
+    python -m streamlit run src/frontend/app.py
+}
+
 function Run-Clean {
     Write-Host "Cleaning build artifacts..." -ForegroundColor Cyan
     Remove-Item -Path .pytest_cache, .ruff_cache, htmlcov, .coverage, __pycache__ -Recurse -Force -ErrorAction SilentlyContinue 2>$null
@@ -132,5 +143,6 @@ elseif ($Target -eq "test") { Run-Test }
 elseif ($Target -eq "lint") { Run-Lint }
 elseif ($Target -eq "spec-check") { Run-SpecCheck }
 elseif ($Target -eq "docker-build") { Run-DockerBuild }
+elseif ($Target -eq "run-frontend") { Run-Frontend }
 elseif ($Target -eq "clean") { Run-Clean }
 else { Show-Help }

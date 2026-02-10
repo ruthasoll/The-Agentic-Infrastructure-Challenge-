@@ -12,7 +12,7 @@
 #   make docker-test  - Run tests in Docker
 #   make clean      - Remove build artifacts
 
-.PHONY: help setup test lint spec-check docker-build docker-test clean
+.PHONY: help setup test lint spec-check docker-build docker-test clean run-frontend
 
 # Default target
 help:
@@ -25,6 +25,7 @@ help:
 	@echo "  make spec-check   - Verify spec references in code"
 	@echo "  make docker-build - Build Docker image"
 	@echo "  make docker-test  - Run tests inside Docker"
+	@echo "  make run-frontend - Launch Streamlit Dashboard"
 	@echo "  make clean        - Remove build artifacts"
 	@echo ""
 	@echo "Spec Reference: .cursor/rules (TDD and automation)"
@@ -161,6 +162,15 @@ clean-all: clean
 
 ci-test: setup test lint spec-check
 	@echo "✓ CI pipeline complete"
+
+# ============================================================================
+# Frontend
+# ============================================================================
+
+run-frontend:
+	@echo "Launching Agent Command Center..."
+	@echo "Spec Reference: specs/frontend.md"
+	@PYTHONPATH=$PWD:src streamlit run src/frontend/app.py
 
 # ============================================================================
 # Development Workflow
